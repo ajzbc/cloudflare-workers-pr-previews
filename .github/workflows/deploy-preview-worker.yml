@@ -1,0 +1,55 @@
+name: Deploy Cloudflare Worker Preview
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Create and Update GitHub Deployment
+        id: create_deployment
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const deployment = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.payload.pull_request.head.sha,
+              required_contexts: [],
+              environment: 'Cloudflare Worker Preview',
+              description: 'Creating a preview',
+              auto_merge: false,
+            });
+
+            if (deployment.status !== 201) {
+              throw new Error('Failed to create deployment');
+            }
+
+            return deployment.data.id;
+
+      - name: Deploy to Cloudflare Workers
+        id: deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --env=${{ github.event.pull_request.number }}
+
+      - name: Update GitHub Deployment Status
+        if: always()
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'success',
+              description: 'Created a preview',
+              deployment_id: ${{ steps.create_deployment.outputs.result }},
+              environment_url: '${{ steps.deploy.outputs.deployment-url }}',
+            });
