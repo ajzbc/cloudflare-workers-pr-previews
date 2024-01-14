@@ -15,7 +15,7 @@ Automatically deploy PR preview workers
 
 - deletes preview worker on `merge` or `close` of the PR
 
-### [`deploy-worker-production`](https://github.com/ajzbc/cloudflare-workers-pr-previews/blob/main/.github/workflows/deploy-worker-production.yml)
+### [`deploy-worker-production.yml`](https://github.com/ajzbc/cloudflare-workers-pr-previews/blob/main/.github/workflows/deploy-worker-production.yml)
 
 - deploys production worker on commits to main
 
